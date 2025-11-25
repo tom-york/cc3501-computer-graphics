@@ -40,6 +40,7 @@ def main(width, height):
         eps = 0.016  # sticker offset outward from body
         body_col = body_color if body_color is not None else np.array([0.08, 0.08, 0.08], dtype=np.float32)
         # body transforms
+        graph.add_transform(f"{name}_rot_face", tr.identity())
         graph.add_transform(f"{name}_rot", tr.identity())
         graph.add_transform(f"{name}_geom", tr.scale(size, size, size))
         graph.add_transform(f"{name}_trans", tr.translate(*pos))
@@ -81,6 +82,7 @@ def main(width, height):
             graph.add_mesh_instance(s_mesh, "cube", "basic_pipeline", color=np.array(color, dtype=np.float32))
         return {
             "rot": f"{name}_rot",
+            "rot_face": f"{name}_rot_face",
             "geom": f"{name}_geom",
             "trans": f"{name}_trans",
             "mesh": f"{name}_mesh",
@@ -135,7 +137,8 @@ def main(width, height):
 
     # Estructura central
     for ((x, y, z), cube) in cube_array:
-        graph.add_edge("rubik", cube["trans"])
+        graph.add_edge("rubik", cube["rot_face"])
+        graph.add_edge(cube["rot_face"], cube["trans"])
         graph.add_edge(cube["trans"], cube["rot"])
         graph.add_edge(cube["rot"], cube["geom"])
         graph.add_edge(cube["geom"], cube["mesh"])
@@ -161,13 +164,13 @@ def main(width, height):
         angle = (np.pi / 2) * direction
         for iy in [-1, 0, 1]:
             for iz in [-1, 0, 1]:
-                name = cube_state[layer_index+1, iy+1, iz+1]
+                name = cube_state[layer_index, iy+1, iz+1]
                 cube_rot_angles[name] = (cube_rot_angles.get(name) + angle) % (2 * np.pi)
-                graph.add_transform(f"{name}_rot", tr.rotationX(cube_rot_angles[name]))
+                graph.add_transform(f"{name}_rot_face", tr.rotationX(cube_rot_angles[name]))
                 # Update cube_state matrix
                 new_iy = -iz
                 new_iz = iy
-                temp_matrix[layer_index+1, new_iy+1, new_iz+1] = name
+                temp_matrix[layer_index, new_iy+1, new_iz+1] = name
         cube_state = temp_matrix
 
     def y_rotate_layer_90(graph, layer_index, direction=1):
@@ -177,13 +180,13 @@ def main(width, height):
         angle = (np.pi / 2) * direction
         for ix in [-1, 0, 1]:
             for iz in [-1, 0, 1]:
-                name = cube_state[ix+1, layer_index+1, iz+1]
+                name = cube_state[ix+1, layer_index, iz+1]
                 cube_rot_angles[name] = (cube_rot_angles.get(name) + angle) % (2 * np.pi)
-                graph.add_transform(f"{name}_rot", tr.rotationY(cube_rot_angles[name]))
+                graph.add_transform(f"{name}_rot_face", tr.rotationY(cube_rot_angles[name]))
                 # Update cube_state matrix
                 new_ix = iz
                 new_iz = -ix
-                temp_matrix[new_ix+1, layer_index+1, new_iz+1] = name
+                temp_matrix[new_ix+1, layer_index, new_iz+1] = name
         cube_state = temp_matrix
 
     def z_rotate_layer_90(graph, layer_index, direction=1):
@@ -193,34 +196,97 @@ def main(width, height):
         angle = (np.pi / 2) * direction
         for ix in [-1, 0, 1]:
             for iy in [-1, 0, 1]:
-                name = cube_state[ix+1, iy+1, layer_index+1]
+                name = cube_state[ix+1, iy+1, layer_index]
                 cube_rot_angles[name] = (cube_rot_angles.get(name) + angle) % (2 * np.pi)
-                graph.add_transform(f"{name}_rot", tr.rotationZ(cube_rot_angles[name]))
+                graph.add_transform(f"{name}_rot_face", tr.rotationZ(cube_rot_angles[name]))
                 # Update cube_state matrix
                 new_ix = -iy
                 new_iy = ix
-                temp_matrix[new_ix+1, new_iy+1, layer_index+1] = name
+                temp_matrix[new_ix+1, new_iy+1, layer_index] = name
         cube_state = temp_matrix
     
 
     # ================================================================
     # RENDER LOOP
     # ================================================================
+
+    camera_distance = 1.5
+    camera_theta = np.pi / 4  # ángulo horizontal
+    camera_phi = np.pi / 4    # ángulo vertical
+    mouse_pressed = False
+    last_mouse_x = 0
+    last_mouse_y = 0
+
+    @window.event
+    def on_key_press(symbol, modifiers):
+        shift = modifiers & pyglet.window.key.MOD_SHIFT
+
+        if symbol == pyglet.window.key.Q:
+            x_rotate_layer_90(graph, 0, direction=1 if not shift else -1)
+        elif symbol == pyglet.window.key.W:
+            x_rotate_layer_90(graph, 1, direction=1 if not shift else -1)
+        elif symbol == pyglet.window.key.E:
+            x_rotate_layer_90(graph, 2, direction=1 if not shift else -1)
+        
+        elif symbol == pyglet.window.key.A:
+            y_rotate_layer_90(graph, 0, direction=1 if not shift else -1)
+        elif symbol == pyglet.window.key.S:
+            y_rotate_layer_90(graph, 1, direction=1 if not shift else -1)
+        elif symbol == pyglet.window.key.D:
+            y_rotate_layer_90(graph, 2, direction=1 if not shift else -1)
+
+        elif symbol == pyglet.window.key.Z:
+            z_rotate_layer_90(graph, 0, direction=1 if not shift else -1)
+        elif symbol == pyglet.window.key.X:
+            z_rotate_layer_90(graph, 1, direction=1 if not shift else -1)
+        elif symbol == pyglet.window.key.C:
+            z_rotate_layer_90(graph, 2, direction=1 if not shift else -1)
+
+    @window.event
+    def on_mouse_press(x, y, button, modifiers):
+        nonlocal mouse_pressed, last_mouse_x, last_mouse_y
+        if button == pyglet.window.mouse.LEFT:
+            mouse_pressed = True
+            last_mouse_x = x
+            last_mouse_y = y
+
+    @window.event
+    def on_mouse_release(x, y, button, modifiers):
+        nonlocal mouse_pressed
+        if button == pyglet.window.mouse.LEFT:
+            mouse_pressed = False
+
+    @window.event
+    def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
+        nonlocal camera_theta, camera_phi
+        if mouse_pressed:
+            camera_theta += dx * 0.01
+            camera_phi = np.clip(camera_phi + dy * 0.01, 0.1, np.pi - 0.1)
+
+    @window.event
+    def on_mouse_scroll(x, y, scroll_x, scroll_y):
+        nonlocal camera_distance
+        camera_distance = np.clip(camera_distance - scroll_y * 0.1, 0.5, 5.0)
+
     @window.event
     def on_draw():
         window.clear()
         GL.glEnable(GL.GL_DEPTH_TEST)
 
-        eye = np.array([0.8, 0.8, 0.8])
+        eye_x = camera_distance * np.sin(camera_phi) * np.cos(camera_theta)
+        eye_y = camera_distance * np.cos(camera_phi)
+        eye_z = camera_distance * np.sin(camera_phi) * np.sin(camera_theta)
+        
+        eye = np.array([eye_x, eye_y, eye_z])
         center = np.array([0.0, 0.0, 0.0])
         up = np.array([0.0, 1.0, 0.0])
+        
         view = tr.lookAt(eye, center, up)
         projection = tr.perspective(60, float(width) / float(height), 0.1, 100)
 
         graph.register_view_transform(view)
         graph.set_global_attributes(projection=projection)
         graph.render()
-
     pyglet.app.run()
 
 
