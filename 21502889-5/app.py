@@ -88,7 +88,7 @@ def main(width, height):
         }
     
     cube_size = 0.2
-    spacing = 0.0
+    spacing = 0.1
 
     WHITE = np.array([1.0, 1.0, 1.0], dtype=np.float32)
     YELLOW = np.array([1.0, 1.0, 0.0], dtype=np.float32)
