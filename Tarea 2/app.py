@@ -7,7 +7,7 @@ from pathlib import Path
 import grafica.transformations as tr
 from grafica.utils import load_pipeline
 from grafica.scenegraph import Scenegraph
-
+from pyglet.window import key
 
 @click.command()
 @click.option("--width", default=800, help="Ancho de la ventana")
@@ -128,6 +128,7 @@ def main(width, height):
     graph.add_edge("left_shoulder", "left_upper_arm_rot")
     graph.add_edge("left_upper_arm_rot", "left_upper_arm_geom")
     graph.add_edge("left_upper_arm_geom", "left_upper_arm_mesh")
+
     graph.add_edge("left_upper_arm_rot", "left_elbow")
     graph.add_edge("left_elbow", "left_lower_arm_rot")
     graph.add_edge("left_lower_arm_rot", "left_lower_arm_geom")
@@ -138,6 +139,7 @@ def main(width, height):
     graph.add_edge("right_shoulder", "right_upper_arm_rot")
     graph.add_edge("right_upper_arm_rot", "right_upper_arm_geom")
     graph.add_edge("right_upper_arm_geom", "right_upper_arm_mesh")
+
     graph.add_edge("right_upper_arm_rot", "right_elbow")
     graph.add_edge("right_elbow", "right_lower_arm_rot")
     graph.add_edge("right_lower_arm_rot", "right_lower_arm_geom")
@@ -148,6 +150,7 @@ def main(width, height):
     graph.add_edge("left_hip", "left_upper_leg_rot")
     graph.add_edge("left_upper_leg_rot", "left_upper_leg_geom")
     graph.add_edge("left_upper_leg_geom", "left_upper_leg_mesh")
+
     graph.add_edge("left_upper_leg_rot", "left_knee")
     graph.add_edge("left_knee", "left_lower_leg_rot")
     graph.add_edge("left_lower_leg_rot", "left_lower_leg_geom")
@@ -158,29 +161,29 @@ def main(width, height):
     graph.add_edge("right_hip", "right_upper_leg_rot")
     graph.add_edge("right_upper_leg_rot", "right_upper_leg_geom")
     graph.add_edge("right_upper_leg_geom", "right_upper_leg_mesh")
+    
     graph.add_edge("right_upper_leg_rot", "right_knee")
     graph.add_edge("right_knee", "right_lower_leg_rot")
     graph.add_edge("right_lower_leg_rot", "right_lower_leg_geom")
     graph.add_edge("right_lower_leg_geom", "right_lower_leg_mesh")
 
-
-
     # ================================================================
-    
-    def first_pose(graph):
-        """"Pose saludando"""
-        graph.add_transform("left_upper_arm_rot", tr.rotationZ(-2.5))
-        graph.add_transform("left_shoulder", tr.translate(-0.245, 0.35, 0.0))
+    projection = tr.perspective(60, float(width) / float(height), 0.1, 20)
+
+    def set_initial_pose(graph):
+        nonlocal projection
+        projection = tr.perspective(60, float(width) / float(height), 0.1, 20)
+        graph.add_transform("left_upper_arm_rot", tr.rotationZ(0))
+        graph.add_transform("right_upper_arm_rot", tr.rotationZ(0))
+        
+        graph.add_transform("left_shoulder", tr.translate(-0.245, 0.18, 0.0))
         graph.add_transform("right_shoulder", tr.translate(0.245, 0.18, 0.0))
 
-        graph.add_transform("right_upper_arm_rot", tr.rotationZ(0))
-
-
-        graph.add_transform("left_lower_arm_rot", tr.rotationZ(-0.5))
-        graph.add_transform("left_elbow", tr.translate(-0.05, -0.25, 0.0))
+        graph.add_transform("left_lower_arm_rot", tr.rotationZ(0))
+        graph.add_transform("left_elbow", tr.translate(0.0, -0.3, 0.0))
 
         graph.add_transform("right_lower_arm_rot", tr.rotationZ(0))
-        
+        graph.add_transform("right_elbow", tr.translate(0.0, -0.3, 0.0))
 
         graph.add_transform("left_upper_leg_rot", tr.rotationZ(0))
         graph.add_transform("left_hip", tr.translate(-0.115, -0.58, 0.0))
@@ -190,59 +193,67 @@ def main(width, height):
 
         graph.add_transform("left_lower_leg_rot", tr.rotationZ(0))
         graph.add_transform("right_lower_leg_rot", tr.rotationZ(0))
-        return tr.lookAt(np.array([0.0, 0.5, 3.0]), 
+
+    def first_pose(graph):
+        nonlocal projection
+        set_initial_pose(graph)
+        # Pose saludando
+        graph.add_transform("left_upper_arm_rot", tr.rotationZ(-2.5))
+        graph.add_transform("left_shoulder", tr.translate(-0.245, 0.35, 0.0))
+
+        graph.add_transform("left_lower_arm_rot", tr.rotationZ(-0.5))
+        graph.add_transform("left_elbow", tr.translate(-0.05, -0.25, 0.0))
+
+        projection = tr.perspective(110, float(width) / float(height), 0.1, 20)
+        return tr.lookAt(np.array([0.0, 1.0, 0.7]), 
                          np.array([0.0, 0.0, 0.0]), 
                          np.array([0.0, 1.0, 0.0]))
 
 
     def second_pose(graph):
-        """Pose caminando"""
+        nonlocal projection
+        set_initial_pose(graph)
+        # Pose caminando
         graph.add_transform("left_upper_arm_rot", tr.rotationX(-0.75))
-        graph.add_transform("left_shoulder", tr.translate(-0.245, 0.18, 0.0))
 
         graph.add_transform("right_upper_arm_rot", tr.rotationX(0.8))
-        graph.add_transform("right_shoulder", tr.translate(0.245, 0.18, 0.0))
-
-        graph.add_transform("left_lower_arm_rot", tr.rotationZ(0))
-        graph.add_transform("left_elbow", tr.translate(0.0, -0.3, 0.0))
-
-        graph.add_transform("right_lower_arm_rot", tr.rotationZ(0))
-
 
         graph.add_transform("left_upper_leg_rot", tr.rotationX(-0.5))
         graph.add_transform("left_hip", tr.translate(-0.115, -0.50, 0.12))
 
-
         graph.add_transform("right_upper_leg_rot", tr.rotationX(0.5))
         graph.add_transform("right_hip", tr.translate(0.115, -0.50, -0.128))
 
-
-        graph.add_transform("left_lower_leg_rot", tr.rotationZ(0))
-        graph.add_transform("right_lower_leg_rot", tr.rotationZ(0))
-        return tr.lookAt(np.array([2.0, 1.0, 3.0]), 
+        projection = tr.perspective(30, float(width) / float(height), 0.1, 20)
+        return tr.lookAt(np.array([2.0, 3.0, 3.5]), 
                          np.array([0.0, 0.0, 0.0]), 
                          np.array([0.0, 1.0, 0.0]))
 
 
     def third_pose(graph):
-        graph.add_transform("left_upper_arm_rot", tr.rotationZ(-10))
-        graph.add_transform("right_upper_arm_rot", tr.rotationZ(10))
-        graph.add_transform("left_lower_arm_rot", tr.rotationZ(20))
-        graph.add_transform("right_lower_arm_rot", tr.rotationZ(-20))
-        graph.add_transform("left_upper_leg_rot", tr.rotationZ(-15))
-        graph.add_transform("right_upper_leg_rot", tr.rotationZ(15))
-        graph.add_transform("left_lower_leg_rot", tr.rotationZ(5))
-        graph.add_transform("right_lower_leg_rot", tr.rotationZ(-5))
-        return tr.lookAt(np.array([-2.0, 1.0, 3.0]), 
-                         np.array([0.0, 0.5, 0.0]), 
-                         np.array([0.0, 1.0, 0.0]))
+        nonlocal projection
+        set_initial_pose(graph)
+        # Pose de estrella
+        graph.add_transform("left_upper_arm_rot", tr.rotationZ(-2.1))
+        graph.add_transform("left_shoulder", tr.translate(-0.35, 0.35, 0.0))
+
+        graph.add_transform("right_upper_arm_rot", tr.rotationZ(2.1))
+        graph.add_transform("right_shoulder", tr.translate(0.35, 0.35, 0.0))
+
+        graph.add_transform("left_upper_leg_rot", tr.rotationZ(-0.7))
+        graph.add_transform("right_hip", tr.translate(0.235, -0.50, 0.0))
+
+        graph.add_transform("right_upper_leg_rot", tr.rotationZ(0.7))
+        graph.add_transform("left_hip", tr.translate(-0.235, -0.50, 0.0))
+
+        projection = tr.perspective(90, float(width) / float(height), 0.1, 20)
+        return tr.lookAt(np.array([1.0, 0.8, 1.5]), 
+                         np.array([0.0, 0.0, 0.0]), 
+                         np.array([0.5, -0.5, 0.0]))
 
 
     poses = [first_pose, second_pose, third_pose]
     current_pose = 0
-
-
-
 
     # ================================================================
     # RENDER LOOP
@@ -253,7 +264,6 @@ def main(width, height):
         GL.glEnable(GL.GL_DEPTH_TEST)
 
         view = poses[current_pose](graph)
-        projection = tr.perspective(60, float(width) / float(height), 0.1, 100)
 
         graph.register_view_transform(view)
         graph.set_global_attributes(projection=projection)
@@ -261,7 +271,6 @@ def main(width, height):
 
     @window.event
     def on_key_press(symbol, modifiers):
-        from pyglet.window import key
         nonlocal current_pose
         if symbol == key.SPACE:
             current_pose = (current_pose + 1) % len(poses)
