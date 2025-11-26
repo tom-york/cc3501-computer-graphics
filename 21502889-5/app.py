@@ -130,7 +130,7 @@ def main(width, height):
     # Generar matriz para llevar cuenta de la estructura del cubo
     cube_state = np.empty((3, 3, 3), dtype=object)
 
-    cube_rot_angles = {f"cubie_{ix+1}_{iy+1}_{iz+1}": 0.0
+    cube_rot_angles = {f"cubie_{ix+1}_{iy+1}_{iz+1}": tr.identity()
                         for ix in [-1, 0, 1]
                         for iy in [-1, 0, 1]
                         for iz in [-1, 0, 1]}
@@ -162,15 +162,20 @@ def main(width, height):
         nonlocal cube_state, cube_rot_angles
         temp_matrix = cube_state.copy()
         angle = (np.pi / 2) * direction
+        rotation = tr.rotationX(angle)
         for iy in [-1, 0, 1]:
             for iz in [-1, 0, 1]:
-                name = cube_state[layer_index, iy+1, iz+1]
-                cube_rot_angles[name] = (cube_rot_angles.get(name) + angle) % (2 * np.pi)
-                graph.add_transform(f"{name}_rot_face", tr.rotationX(cube_rot_angles[name]))
+                name = cube_state[layer_index+1, iy+1, iz+1]
+                cube_rot_angles[name] = rotation @ cube_rot_angles.get(name)
+                graph.add_transform(f"{name}_rot_face", cube_rot_angles[name])
                 # Update cube_state matrix
-                new_iy = -iz
-                new_iz = iy
-                temp_matrix[layer_index, new_iy+1, new_iz+1] = name
+                if direction == 1:
+                    new_iy = -iz
+                    new_iz = iy
+                else:
+                    new_iy = iz
+                    new_iz = -iy
+                temp_matrix[layer_index+1, new_iy+1, new_iz+1] = name
         cube_state = temp_matrix
 
     def y_rotate_layer_90(graph, layer_index, direction=1):
@@ -178,15 +183,20 @@ def main(width, height):
         nonlocal cube_state, cube_rot_angles
         temp_matrix = cube_state.copy()
         angle = (np.pi / 2) * direction
+        rotation = tr.rotationY(angle)
         for ix in [-1, 0, 1]:
             for iz in [-1, 0, 1]:
-                name = cube_state[ix+1, layer_index, iz+1]
-                cube_rot_angles[name] = (cube_rot_angles.get(name) + angle) % (2 * np.pi)
-                graph.add_transform(f"{name}_rot_face", tr.rotationY(cube_rot_angles[name]))
+                name = cube_state[ix+1, layer_index+1, iz+1]
+                cube_rot_angles[name] = rotation @ cube_rot_angles.get(name)
+                graph.add_transform(f"{name}_rot_face", cube_rot_angles[name])
                 # Update cube_state matrix
-                new_ix = iz
-                new_iz = -ix
-                temp_matrix[new_ix+1, layer_index, new_iz+1] = name
+                if direction == 1:
+                    new_ix = iz
+                    new_iz = -ix
+                else:
+                    new_ix = -iz
+                    new_iz = ix
+                temp_matrix[new_ix+1, layer_index+1, new_iz+1] = name
         cube_state = temp_matrix
 
     def z_rotate_layer_90(graph, layer_index, direction=1):
@@ -194,15 +204,20 @@ def main(width, height):
         nonlocal cube_state, cube_rot_angles
         temp_matrix = cube_state.copy()
         angle = (np.pi / 2) * direction
+        rotation = tr.rotationZ(angle)
         for ix in [-1, 0, 1]:
             for iy in [-1, 0, 1]:
-                name = cube_state[ix+1, iy+1, layer_index]
-                cube_rot_angles[name] = (cube_rot_angles.get(name) + angle) % (2 * np.pi)
-                graph.add_transform(f"{name}_rot_face", tr.rotationZ(cube_rot_angles[name]))
+                name = cube_state[ix+1, iy+1, layer_index+1]
+                cube_rot_angles[name] = rotation @ cube_rot_angles.get(name)
+                graph.add_transform(f"{name}_rot_face", cube_rot_angles[name])
                 # Update cube_state matrix
-                new_ix = -iy
-                new_iy = ix
-                temp_matrix[new_ix+1, new_iy+1, layer_index] = name
+                if direction == 1:
+                    new_ix = -iy
+                    new_iy = ix
+                else:
+                    new_ix = iy
+                    new_iy = -ix
+                temp_matrix[new_ix+1, new_iy+1, layer_index+1] = name
         cube_state = temp_matrix
     
 
@@ -222,25 +237,25 @@ def main(width, height):
         shift = modifiers & pyglet.window.key.MOD_SHIFT
 
         if symbol == pyglet.window.key.Q:
-            x_rotate_layer_90(graph, 0, direction=1 if not shift else -1)
+            x_rotate_layer_90(graph, -1, direction=1 if not shift else -1)
         elif symbol == pyglet.window.key.W:
-            x_rotate_layer_90(graph, 1, direction=1 if not shift else -1)
+            x_rotate_layer_90(graph, 0, direction=1 if not shift else -1)
         elif symbol == pyglet.window.key.E:
-            x_rotate_layer_90(graph, 2, direction=1 if not shift else -1)
+            x_rotate_layer_90(graph, 1, direction=1 if not shift else -1)
         
         elif symbol == pyglet.window.key.A:
-            y_rotate_layer_90(graph, 0, direction=1 if not shift else -1)
+            y_rotate_layer_90(graph, -1, direction=1 if not shift else -1)
         elif symbol == pyglet.window.key.S:
-            y_rotate_layer_90(graph, 1, direction=1 if not shift else -1)
+            y_rotate_layer_90(graph, 0, direction=1 if not shift else -1)
         elif symbol == pyglet.window.key.D:
-            y_rotate_layer_90(graph, 2, direction=1 if not shift else -1)
+            y_rotate_layer_90(graph, 1, direction=1 if not shift else -1)
 
         elif symbol == pyglet.window.key.Z:
-            z_rotate_layer_90(graph, 0, direction=1 if not shift else -1)
+            z_rotate_layer_90(graph, -1, direction=1 if not shift else -1)
         elif symbol == pyglet.window.key.X:
-            z_rotate_layer_90(graph, 1, direction=1 if not shift else -1)
+            z_rotate_layer_90(graph, 0, direction=1 if not shift else -1)
         elif symbol == pyglet.window.key.C:
-            z_rotate_layer_90(graph, 2, direction=1 if not shift else -1)
+            z_rotate_layer_90(graph, 1, direction=1 if not shift else -1)
 
     @window.event
     def on_mouse_press(x, y, button, modifiers):
