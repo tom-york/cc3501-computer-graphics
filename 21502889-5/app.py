@@ -37,10 +37,10 @@ def main(width, height):
        sticker_colors is dict mapping face keys ['+X','-X','+Y','-Y','+Z','-Z'] to 3-float arrays.
         """
         half = size / 2.0
-        eps = 0.016  # sticker offset outward from body
+        eps = 0.016
         body_col = body_color if body_color is not None else np.array([0.08, 0.08, 0.08], dtype=np.float32)
-        # body transforms
-        graph.add_transform(f"{name}_rot_face", tr.identity())
+
+        graph.add_transform(f"{name}_rot_face", tr.identity()) # Esta transformacion se creo para la rotacion de las ?capas? o hileras
         graph.add_transform(f"{name}_rot", tr.identity())
         graph.add_transform(f"{name}_geom", tr.scale(size, size, size))
         graph.add_transform(f"{name}_trans", tr.translate(*pos))
@@ -60,7 +60,6 @@ def main(width, height):
             color = None if sticker_colors is None else sticker_colors.get(key, None)
             if color is None:
                 continue
-            # sticker node names
             s_rot = f"{name}_sticker_{key}_rot"
             s_geom = f"{name}_sticker_{key}_geom"
             s_trans = f"{name}_sticker_{key}_trans"
@@ -150,7 +149,7 @@ def main(width, height):
             s_geom = f"{sticker_base}_geom"
             s_trans = f"{sticker_base}_trans"
             
-            # Conectar sticker a la transformación del cubie
+            # Conectar sticker a la transformación del cubo
             graph.add_edge(cube["rot"], s_trans)
             graph.add_edge(s_trans, s_rot)
             graph.add_edge(s_rot, s_geom)
@@ -168,7 +167,7 @@ def main(width, height):
                 name = cube_state[layer_index+1, iy+1, iz+1]
                 cube_rot_angles[name] = rotation @ cube_rot_angles.get(name)
                 graph.add_transform(f"{name}_rot_face", cube_rot_angles[name])
-                # Update cube_state matrix
+                # Actualizar matiz
                 if direction == 1:
                     new_iy = -iz
                     new_iz = iy
@@ -189,7 +188,7 @@ def main(width, height):
                 name = cube_state[ix+1, layer_index+1, iz+1]
                 cube_rot_angles[name] = rotation @ cube_rot_angles.get(name)
                 graph.add_transform(f"{name}_rot_face", cube_rot_angles[name])
-                # Update cube_state matrix
+                # Actualizar matiz
                 if direction == 1:
                     new_ix = iz
                     new_iz = -ix
@@ -210,7 +209,7 @@ def main(width, height):
                 name = cube_state[ix+1, iy+1, layer_index+1]
                 cube_rot_angles[name] = rotation @ cube_rot_angles.get(name)
                 graph.add_transform(f"{name}_rot_face", cube_rot_angles[name])
-                # Update cube_state matrix
+                # Actualizar matiz
                 if direction == 1:
                     new_ix = -iy
                     new_iy = ix
@@ -226,8 +225,8 @@ def main(width, height):
     # ================================================================
 
     camera_distance = 1.5
-    camera_theta = np.pi / 4  # ángulo horizontal
-    camera_phi = np.pi / 4    # ángulo vertical
+    camera_theta = np.pi / 4  # angulo horizontal
+    camera_phi = np.pi / 4    # angulo vertical
     mouse_pressed = False
     last_mouse_x = 0
     last_mouse_y = 0
